@@ -19,6 +19,12 @@ class Downloader:
         df_past = self.get_past_bars(pair)
 
         return df_past if past else self.update_data(pair, df_past)
+    
+    def get_working_data(self, pair:str):
+        """purpose is to return data altered for data science. Call get_minutely_data for raw data"""
+        df = self.get_minutely_data(pair, past=False)
+        df = df.set_index("timestamp")
+        return df
         
 
     def update_data(self, pair:str, df_past):
