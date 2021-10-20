@@ -3,6 +3,10 @@ import numpy as np
 from multiprocess import mp_pandas_obj
 
 
+def timedelta(days):
+    """returns number of minutes in days times 60000 for default binance timeindex"""
+    return days*24*60*60000
+
 def get_daily_vol(close, span=10000, days=2):
     """
     daily vol, reindexed to close
@@ -13,7 +17,7 @@ def get_daily_vol(close, span=10000, days=2):
     Purpose:
     use the output of this function to set default profit taking and stop-loss limit
     """
-    df0 = close.index.searchsorted(close.index-pd.Timedelta(days=days))
+    df0 = close.index.searchsorted(close.index-timedelta(days=days))
     df0=df0[df0>0]
     df0=pd.Series(close.index[df0-1], index=close.index[close.shape[0]-df0.shape[0]:])
     df0=close.loc[df0.index]/close.loc[df0.values].values-1 # daily returns
@@ -73,14 +77,11 @@ def get_vertical_barrier(close, t_events, num_days):
     """
     Snippet 3.4, indended to be used on t1
     """
-    shift = pd.Timedelta(days=num_days)
+    shift = timedelta(days=num_days)
     t1=close.index.searchsorted(list(map(lambda x: x+shift, t_events)))
-    print("verify that get_vertical_barrier works as expected, use above code")
-#     t1=close.index.searchsorted(t_events+pd.Timedelta(days=num_days))
     t1=t1[t1<close.shape[0]]
     t1=(pd.Series(close.index[t1],index=t_events[:t1.shape[0]]))
     t1 = t1[~t1.index.duplicated()] #remove duplicates, crude solution
-    print("remove above remove duplicates code with BTC data and see if it works")
     return t1
 
 def get_events(close, t_events, ptsl, trgt, min_ret, num_threads, t1, side):
@@ -111,17 +112,17 @@ def get_events(close, t_events, ptsl, trgt, min_ret, num_threads, t1, side):
     trgt=trgt.reindex(t_events)
     trgt=trgt[trgt>min_ret] # min_ret
     #2) get t1 (max holding period)
-    if t1 is False:t1=pd.Series(pd.NaT, index=t_events)
+    if t1 is False:t1=pd.Series(pd.NaN, index=t_events)
     #3) form events object, apply stop loss on t1
     if side is None:side_,ptsl_=pd.Series(1.,index=trgt.index), [ptsl[0],ptsl[0]]
     else: side_,ptsl_=side.reindex(trgt.index),ptsl[:2] #side.loc[trgt.index],ptsl[:2]
     events=(pd.concat({'t1':t1,'trgt':trgt,'side':side_}, axis=1)
             .dropna()) #Note this drops most recent as well
-    events["t1"] = events["t1"]
+    events["t1"] = events["t1"].astype(int)
     df0 = mp_pandas_obj(func=apply_triple_barrier,pd_obj=('molecule',events.index),
                     num_threads=num_threads,close=close,events=events,
                     ptsl=ptsl_)
-    events['t1']=df0.dropna(how='all').min(axis=1) # pd.min ignores nan
+    events['t1']=df0.dropna(how='all').min(axis=1).astype(int) # pd.min ignores nan
     if side is None:events=events.drop('side',axis=1)
     return events
 

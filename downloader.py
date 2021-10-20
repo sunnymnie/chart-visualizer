@@ -20,10 +20,12 @@ class Downloader:
 
         return df_past if past else self.update_data(pair, df_past)
     
-    def get_working_data(self, pair:str):
+    def get_working_data(self, pair:str, time=True):
         """purpose is to return data altered for data science. Call get_minutely_data for raw data"""
         df = self.get_minutely_data(pair, past=False)
-        df = df.set_index("timestamp")
+        
+        if time: df["timestamp"] = list(map(lambda x: datetime.utcfromtimestamp(x / 1e3), df.timestamp))
+        df.set_index("timestamp", inplace=True)
         return df
         
 
