@@ -3,7 +3,7 @@ import numpy as np
 from multiprocess import mp_pandas_obj
 
 
-def get_daily_vol(close, span=10000, days=2):
+def get_daily_vol(close, span=10000, days=2, hours=0):
     """
     daily vol, reindexed to close
 
@@ -13,14 +13,14 @@ def get_daily_vol(close, span=10000, days=2):
     Purpose:
     use the output of this function to set default profit taking and stop-loss limit
     """
-    df0 = close.index.searchsorted(close.index-pd.Timedelta(days=days))
+    df0 = close.index.searchsorted(close.index-pd.Timedelta(days=days, hours=hours))
     df0=df0[df0>0]
     df0=pd.Series(close.index[df0-1], index=close.index[close.shape[0]-df0.shape[0]:])
     df0=close.loc[df0.index]/close.loc[df0.values].values-1 # daily returns
     df0=df0.ewm(span=span).std()
     return df0
 
-def get_t_events(close, h, m):
+def get_t_events(close, h, m, neg=True, pos=True):
     """
     Implementation of the symmetric CUSUM filter seen in chapter 2.5.2
 
@@ -28,6 +28,8 @@ def get_t_events(close, h, m):
     close -- the raw time series to filter (possibly pandas series)
     h -- threshold pandas series vol
     m -- minimum threshold (float, ex: 0.02)
+    neg -- include neg indicators
+    pos -- include pos indicators
 
     Purpose:
     The CUSUM filter is a quality-control method, designed to detect a shift in the mean value of a measured quantity away from a target value. 
@@ -53,11 +55,11 @@ def get_t_events(close, h, m):
                 continue
         if s_neg<-th:
             s_neg=0
-            t_events.append(i)
+            if neg: t_events.append(i)
 #             side.append(0)
         if s_pos>th:
             s_pos=0
-            t_events.append(i)
+            if pos: t_events.append(i)
 #             side.append(1)
 #     return pd.DatetimeIndex(t_events)
     t_events = remove_duplicates_from_list(t_events) #remove duplicates, crude solution
@@ -69,11 +71,11 @@ def remove_duplicates_from_list(seq):
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
 
-def get_vertical_barrier(close, t_events, num_days):
+def get_vertical_barrier(close, t_events, num_days, hours=0):
     """
     Snippet 3.4, indended to be used on t1
     """
-    shift = pd.Timedelta(days=num_days)
+    shift = pd.Timedelta(days=num_days, hours=hours)
     t1=close.index.searchsorted(list(map(lambda x: x+shift, t_events)))
     print("verify that get_vertical_barrier works as expected, use above code")
 #     t1=close.index.searchsorted(t_events+pd.Timedelta(days=num_days))
