@@ -3,13 +3,13 @@ import numpy as np
 from multiprocess import mp_pandas_obj
 
 
-def get_daily_vol(close, span=10000, days=2, hours=0):
+def get_daily_vol(close, span=10, days=2, hours=0):
     """
     daily vol, reindexed to close
 
     Arguments:
     close -- daily close (probably Pandas series)
-    span -- span lol (probably int)
+    span -- span for moving average (probably int)
     Purpose:
     use the output of this function to set default profit taking and stop-loss limit
     """
