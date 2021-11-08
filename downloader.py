@@ -18,6 +18,7 @@ class Downloader:
         else also updates it (without saving) and returns it
         span:
             - m for minutely
+            - m15 for 15 minutes
             - h for hourly
             - d for daily
         """
@@ -26,10 +27,10 @@ class Downloader:
 
         return df_past if past else self.update_data(pair, df_past, span)
     
-    def get_working_data(self, pair:str, time=True):
+    def get_working_data(self, pair:str, time=True, span="m15"):
         """purpose is to return data altered for data science. Call get_timeseries_data for raw data. Time for 
         timeindex index"""
-        df = self.get_timeseries_data(pair, span="h", past=False)
+        df = self.get_timeseries_data(pair, span=span, past=False)
         
         if time: df["timestamp"] = list(map(lambda x: datetime.utcfromtimestamp(x / 1e3), df.timestamp))
         df.set_index("timestamp", inplace=True)
@@ -65,6 +66,7 @@ class Downloader:
         self.client = bh.new_binance_client()
         start_date = self.get_str_date(self.get_date_from_int(start))
         kline = {"m":self.client.KLINE_INTERVAL_1MINUTE,
+                 "m15":self.client.KLINE_INTERVAL_15MINUTE,
                  "h":self.client.KLINE_INTERVAL_1HOUR,
                  "d":self.client.KLINE_INTERVAL_1DAY}[span]
         klines = self.client.get_historical_klines(pair, kline, start_date, limit=1000)
