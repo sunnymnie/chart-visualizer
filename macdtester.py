@@ -48,10 +48,11 @@ def get_base_macd_events(df, mlen=3, stdev=1):
     return result
 
 
-def get_macd_events(df, events, stats, funcs, min_length=3):
+def get_macd_events(df, events, stats, funcs, min_length=3, l1=1, l2=3, l3=7):
     """
     stats = ['gain', v0'...]
     funcs = [func_1, func_2...], needs to be same length as stats
+    l1, l2, l3 are lengths from tn1-days:t0. 
     All funcs need to have signature func(df_, df_1, df_7, df_30)->float
     
     Returns macd events, dropped nans. 
@@ -63,8 +64,8 @@ def get_macd_events(df, events, stats, funcs, min_length=3):
         if events.tn1[i]-pd.Timedelta(days=30) not in df.index: continue
         df_ = df.loc[events.tn1[i]:events.t0[i]]
         df_1 = df.loc[events.tn1[i]-pd.Timedelta(days=1):events.t0[i]]
-        df_7 = df.loc[events.tn1[i]-pd.Timedelta(days=7):events.t0[i]]
-        df_30 = df.loc[events.tn1[i]-pd.Timedelta(days=30):events.t0[i]]
+        df_2 = df.loc[events.tn1[i]-pd.Timedelta(days=7):events.t0[i]]
+        df_3 = df.loc[events.tn1[i]-pd.Timedelta(days=30):events.t0[i]]
         if df_.shape[0]<min_length: continue
         row = dict.fromkeys(stats, 0.)
         
